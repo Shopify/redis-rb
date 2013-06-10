@@ -290,6 +290,7 @@ class Redis
               "\#<#{klass}:#{a.__id__}>"
             end
           end
+          logged_args.map! {|str| str.length > 100 ? str[0..100] + "..." : str }
           @logger.debug("[Redis] command=#{name.to_s.upcase} args=#{logged_args.join(' ')}")
         end
 
