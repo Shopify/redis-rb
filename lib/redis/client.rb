@@ -247,14 +247,30 @@ class Redis
       io do
         value = connection.read
         @pending_reads -= 1
+
+        bytes = 0
+        if !value.nil?
+          bytes += value.size
+        end
+
+        ActiveSupport::Notifications.instrument('redis-rb.read.bytes', extra: bytes) do
+        end
+
         value
       end
     end
 
     def write(command)
-      io do
-        @pending_reads += 1
-        connection.write(command)
+      bytes = 0
+      for cmd in command
+        bytes += cmd.to_s.length
+      end
+
+      ActiveSupport::Notifications.instrument('redis-rb.write.bytes', extra: bytes) do
+        io do
+          @pending_reads += 1
+          connection.write(command)
+        end
       end
     end
 
