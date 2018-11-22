@@ -91,12 +91,12 @@ class Redis
       end
     end
 
-    def connect
+    def connect(timeout: nil)
       @pid = Process.pid
 
       # Don't try to reconnect when the connection is fresh
       with_reconnect(false) do
-        establish_connection
+        establish_connection(timeout: timeout)
         call [:auth, password] if password
         call [:select, db] if db != 0
         call [:client, :setname, @options[:id]] if @options[:id]
@@ -325,13 +325,14 @@ class Redis
       end
     end
 
-    def establish_connection
+    def establish_connection(timeout: nil)
       server = @connector.resolve.dup
 
       @options[:host] = server[:host]
       @options[:port] = Integer(server[:port]) if server.include?(:port)
 
-      @connection = @options[:driver].connect(@options)
+      timeout ||= connect_timeout
+      @connection = @options[:driver].connect(@options.merge(connect_timeout: timeout))
       @pending_reads = 0
     rescue TimeoutError,
            Errno::ECONNREFUSED,
@@ -361,8 +362,9 @@ class Redis
               "or set :inherit_socket to true."
           end
         else
-          @options[:connect_timeout] = DYNAMIC_TIMEOUTS[attempt - 1]
-          connect
+          new_timeout = DYNAMIC_TIMEOUTS[attempts - 1]
+          puts "Trying to connect with #{new_timeout}s timeout..."
+          connect(timeout: new_timeout)
         end
 
         yield
