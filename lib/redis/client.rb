@@ -343,6 +343,8 @@ class Redis
       raise CannotConnectError, "Error connecting to Redis on #{location} (#{$!.class})"
     end
 
+    DYNAMIC_TIMEOUTS = [0.1, 0.5, 1.4]
+
     def ensure_connected
       disconnect if @pending_reads > 0
 
@@ -359,6 +361,7 @@ class Redis
               "or set :inherit_socket to true."
           end
         else
+          @options[:connect_timeout] = DYNAMIC_TIMEOUTS[attempt - 1]
           connect
         end
 
@@ -367,6 +370,7 @@ class Redis
         disconnect
 
         if attempts <= @options[:reconnect_attempts] && @reconnect
+          # instrument this!!!
           retry
         else
           raise
