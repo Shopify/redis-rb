@@ -351,6 +351,8 @@ class Redis
 
     Noop = ->(reply) { reply }
 
+    constants(false).each { |name| Ractor.make_shareable(const_get(name)) } if defined?(Ractor)
+
     # Sends a command to Redis and returns its reply.
     #
     # Replies are converted to Ruby objects according to the RESP protocol, so
